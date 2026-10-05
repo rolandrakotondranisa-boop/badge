@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
@@ -6,6 +6,10 @@ import BadgeForm from "./components/BadgeForm";
 import BadgePreview from "./components/BadgePreview";
 import BadgeList from "./components/BadgeList";
 import { getBadges, addBadge, deleteBadge } from "./utils/storage";
+
+const AUTH_KEY = "tantana-auth";
+const LOGIN_USER = "TANTANA";
+const LOGIN_PASSWORD = "badge@gr034";
 
 const initialForm = {
   photo: "",
@@ -19,12 +23,48 @@ const initialForm = {
 export default function App() {
   const [form, setForm] = useState(initialForm);
   const [badges, setBadges] = useState(getBadges());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(AUTH_KEY) === "true";
+  });
+  const [loginForm, setLoginForm] = useState({
+    username: LOGIN_USER,
+    password: LOGIN_PASSWORD,
+  });
+  const [loginError, setLoginError] = useState("");
 
   const rectoRef = useRef(null);
   const versoRef = useRef(null);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_KEY, String(isAuthenticated));
+    }
+  }, [isAuthenticated]);
+
   function resetForm() {
     setForm(initialForm);
+  }
+
+  function handleLogin(event) {
+    event.preventDefault();
+
+    const isCorrectUser = loginForm.username.trim().toUpperCase() === LOGIN_USER;
+    const isCorrectPassword = loginForm.password === LOGIN_PASSWORD;
+
+    if (isCorrectUser && isCorrectPassword) {
+      setIsAuthenticated(true);
+      setLoginError("");
+      return;
+    }
+
+    setLoginError("Nom ou mot de passe incorrect.");
+  }
+
+  function handleLogout() {
+    setIsAuthenticated(false);
+    setLoginForm({ username: LOGIN_USER, password: LOGIN_PASSWORD });
+    setLoginError("");
   }
 
   function handleSave() {
@@ -120,6 +160,82 @@ export default function App() {
     }
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="login-shell">
+        <div className="login-panel">
+          <section className="login-hero">
+            <div className="login-brand">
+              <img
+                className="brand-mark"
+                src="/templates/logo.png"
+                alt="Logo TANTANA"
+              />
+              <div>
+                <p className="brand-label">TANTANA</p>
+                <span className="brand-subtitle">Plateforme</span>
+              </div>
+            </div>
+
+            <div className="login-copy">
+              <span className="eyebrow">Plateforme citoyenne</span>
+              <h1>Bienvenue sur Plateforme Tantana – Mpanorina ny Hoavin&apos;i Madagasikara</h1>
+              <p>
+                Espaces citoyens de réflexion, de formation et de mobilisation, la
+                plateforme Tantana rassemble les jeunes, leaders et citoyens engagés
+                autour d&apos;une vision commune : bâtir un Madagascar prospère,
+                transparent et inclusif. À travers la promotion de la bonne gouvernance,
+                du développement durable, des droits humains et de l&apos;innovation
+                numérique, nous cultivons le leadership civique et la cohésion sociale
+                basés sur l&apos;intégrité, la redevabilité et la solidarité. Connectez-vous
+                pour rejoindre le mouvement et façonner l&apos;avenir de notre nation.
+              </p>
+            </div>
+          </section>
+
+          <section className="login-card">
+            <div className="login-card-head">
+              <p>Connexion</p>
+              <h2>Accéder à votre espace</h2>
+            </div>
+
+            <form onSubmit={handleLogin} className="login-form">
+              <label className="field">
+                <span>Nom</span>
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(event) =>
+                    setLoginForm((previous) => ({ ...previous, username: event.target.value }))
+                  }
+                  placeholder="TANTANA"
+                />
+              </label>
+
+              <label className="field">
+                <span>Mot de passe</span>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm((previous) => ({ ...previous, password: event.target.value }))
+                  }
+                  placeholder="badge@gr034"
+                />
+              </label>
+
+              {loginError ? <p className="login-error">{loginError}</p> : null}
+
+              <button type="submit" className="login-button">
+                Se connecter
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="no-print border-b bg-white">
@@ -131,8 +247,17 @@ export default function App() {
               </h1>
               <p className="text-sm text-slate-500">Plateforme TANTANA — Madagasikara</p>
             </div>
-            <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-green-800">
-              🇲🇬 React + Vite + Tailwind
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-green-800">
+                🇲🇬 React + Vite + Tailwind
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:bg-red-700"
+              >
+                Déconnexion
+              </button>
             </div>
           </div>
         </div>
@@ -183,7 +308,7 @@ export default function App() {
                   onClick={generatePDF}
                   className="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white hover:bg-green-800"
                 >
-                   Générer PDF
+                  Générer PDF
                 </button>
               </div>
             </div>
